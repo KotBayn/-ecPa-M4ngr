@@ -7,18 +7,17 @@ namespace SecPassM4ngr.Tests
     {
 
         [Fact]
-        public void Test_LeetSpeak_Works()
+        public void TestIsItWorks()
         {
-            // Вызываем метод из НОВОГО класса!
+            // Calling the method to see if it runs without exceptions
             string result = PSWRDGN.FullMap("cat");
 
-            // Если метод отработает, строка как минимум не будет пустой
+            // If runs without exceptions, the result is not null or empty
             Assert.NotEmpty(result);
         }
 
-        /*
         [Fact] // Test
-        public void test1()
+        public void TestWordReturn()
         {
             // 1. Arrange 
             string input = "12345";
@@ -31,7 +30,7 @@ namespace SecPassM4ngr.Tests
         }
 
         [Fact]
-        public void test2()
+        public void TestVoidReturn()
         {
             // 1. Arrange
             string input = "";
@@ -41,6 +40,6 @@ namespace SecPassM4ngr.Tests
 
             // 3. Assert 
             Assert.Equal("", result);
-        }*/
+        }
     }
 }
