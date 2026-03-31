@@ -172,85 +172,148 @@ namespace SecPassM4ngr
             "Group", "Cluster", "Bundle", "Batch", "Lot", "Heap", "Pile", "Stack", "Queue", "Deck"
         ];
 
-
-        static async Task Main(string[] args)
+        // Single Random instance (prevents seed duplication issues)
+        static readonly Random _random = new();
+        // FIXED: Removed 'async' since no await is used
+        static void Main(string[] args)
         {
+            // Set UTF-8 encoding for proper Unicode display in console
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
-            Console.WriteLine("Choose type of password to generate.\n" +
-                "Manual or Auto(y/n):");
-            string u = Console.ReadLine();
+            Console.WriteLine("╔═══════════════════════════════════════════════════════╗");
+            Console.WriteLine("║     SECURE PASSWORD GENERATOR v1.2 (Self-Keyed)      ║");
+            Console.WriteLine("╚═══════════════════════════════════════════════════════╝\n");
 
-            string[] box;
+            Console.WriteLine("Choose password generation mode:");
+            Console.WriteLine("  [1] Manual");
+            Console.WriteLine("  [2] Auto");
+            Console.Write("\nYour choice (1/2): ");
 
-
-            if (u?.ToLower() == "y")
+            string choice = Console.ReadLine();
+            string[] words = new string[7];
+            Console.Clear();
+            // MANUAL MODE: 4 user words + 3 random words
+            if (choice == "1")
             {
-                Console.WriteLine("Enter favorit animal: ");
-                string an = Console.ReadLine();
+                Console.WriteLine("\n╔═══════════════════════════════════════════════════════╗");
+                Console.WriteLine("║                  MANUAL MODE                          ║");
+                Console.WriteLine("╚═══════════════════════════════════════════════════════╝\n");
+                Console.WriteLine("Enter 4 personal words:\n");
 
-                Console.WriteLine("Enter favorit sport: ");
-                string sp = Console.ReadLine();
+                words[0] = GetWordInput("Favorite car brand/model");
+                words[1] = GetWordInput("Favorite food/dish");
+                words[2] = GetWordInput("Favorite game/hobby");
+                words[3] = GetWordInput("KEY WORD (any word)");
 
-                Console.WriteLine("Enter name of friend: ");
-                string fr = Console.ReadLine();
-
-                Console.WriteLine("Enter favorit car: ");
-                string cr = Console.ReadLine();
-
-                box = [an, sp, fr, cr];
-                Random rnd = new();
+                // Fill remaining 3 positions with random words from dictionaries
+                words[4] = GetRandomWordFromAllDictionaries();
+                words[5] = GetRandomWordFromAllDictionaries();
+                words[6] = GetRandomWordFromAllDictionaries();
 
             }
+            
+            // AUTO MODE: 6 random words + 1 user key word
             else
             {
-                Random rnd = new();
+                Console.WriteLine("\n╔═══════════════════════════════════════════════════════╗");
+                Console.WriteLine("║                   AUTO MODE                           ║");
+                Console.WriteLine("╚═══════════════════════════════════════════════════════╝\n");
+                Console.WriteLine("Enter 1 KEY WORD:\n");
 
-                string ky = Dictionary1[rnd.Next(Dictionary1.Length)];
-                string bw = Dictionary2[rnd.Next(Dictionary2.Length)];
-                string io = Dictionary3[rnd.Next(Dictionary3.Length)];
-                string rp = Dictionary4[rnd.Next(Dictionary4.Length)];
-                string tp = Dictionary5[rnd.Next(Dictionary5.Length)];
-                string mn = Dictionary6[rnd.Next(Dictionary6.Length)];
+                words[0] = GetWordInput("KEY WORD");
 
-                box = [ky, bw, rp, tp, io, mn];
-
+                // Fill remaining 6 positions with random words from dictionaries
+                for (int i = 1; i < 7; i++)
+                {
+                    words[i] = GetRandomWordFromAllDictionaries();
+                }
             }
 
-            // Cicle through each word in the password array
-            for (int i = 0; i < box.Length; i++)
+            // ENSURE UNIQUENESS: Check for duplicate words
+            int attempts = 0;
+            while (words.Distinct().Count() != words.Length && attempts < 100)
             {
-                box[i] = PSWRDGN.FullMap(box[i]);
+                attempts++;
+                var duplicates = words.GroupBy(x => x).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+                foreach (var dup in duplicates)
+                {
+                    var indices = words.Select((x, i) => x == dup ? i : -1).Where(i => i != -1).ToList();
+                    for (int i = 1; i < indices.Count; i++)
+                    {
+                        words[indices[i]] = GetRandomWordFromAllDictionaries();
+                    }
+                }
             }
-            Random random = new();
-            //Mix the array to make it more secure
-            // making sure to add 3 more random words from the dictionaries
-            Array.Resize(ref box, box.Length + 2);
-            string p1 = Dictionary1[random.Next(Dictionary1.Length)];
-            string p2 = Dictionary2[random.Next(Dictionary2.Length)];
-            string p3 = Dictionary3[random.Next(Dictionary3.Length)];
-            string p4 = Dictionary4[random.Next(Dictionary4.Length)];
-            string p5 = Dictionary5[random.Next(Dictionary5.Length)];
-            string p6 = Dictionary6[random.Next(Dictionary6.Length)];
-            box[box.Length - 2] = PSWRDGN.FullMap(p1);
-            box[box.Length - 1] = PSWRDGN.FullMap(p2);
-            box[box.Length - 2] = PSWRDGN.FullMap(p3);
-            box[box.Length - 1] = PSWRDGN.FullMap(p4);
-            box[box.Length - 2] = PSWRDGN.FullMap(p5);
-            box[box.Length - 1] = PSWRDGN.FullMap(p6);
-            bool sz = box.Distinct().Count() != box.Length; // Ensure all words are unique
 
-            box = [.. box.OrderBy(x => random.Next())];
+            // PASSWORD GENERATION: Using self-keyed obfuscation with random positions
+            var result = PSWRDGN.PassWizard(words);
+            string password = result.letter;
+            var config = result.config;
+            Console.Clear();
+            // OUTPUT: Display results
+            Console.WriteLine("\n╔═══════════════════════════════════════════════════════╗");
+            Console.WriteLine("║              GENERATED PASSWORD                       ║");
+            Console.WriteLine("╚═══════════════════════════════════════════════════════╝\n");
 
-            // Result
-            string pakman = string.Join("-", box);
-            string ghost = string.Join("-", box.Reverse());
+            Console.WriteLine($" PASSWORD:\n{password}\n");
+            Console.WriteLine($" Length: {password.Length} characters");
+            Console.WriteLine($"\n Original Words: {string.Join(" ", config.OriginalWords)}");
 
-            Console.WriteLine($"Generated Key: {pakman}");
-            Console.WriteLine($"Reverse Key:   {ghost}");
+            // What user needs to save
+            Console.WriteLine("┌────────────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│  BACKUP CARD                                                   │");
+            Console.WriteLine("├────────────────────────────────────────────────────────────────┤");
+            Console.WriteLine($"│  Words: {string.Join(", ", config.OriginalWords),-50}     │");
+            Console.WriteLine($"│  Key Position: {config.KeyPosition}                                               │");
+            Console.WriteLine($"│  Algorithm: PSWRDGN.PassWizard()                               │");
+            Console.WriteLine("└────────────────────────────────────────────────────────────────┘\n");
 
+            // VERIFICATION: Test that password can be verified
+            Console.WriteLine("Running verification test...");
+            int verifiedPos = PSWRDGN.Guardians(password, config.OriginalWords);
+            Console.WriteLine($"Verification: Key position {(verifiedPos >= 0 ? "FOUND" : "FAILED")} (Position: {verifiedPos})\n");
+
+            // OPTIONAL: Generate reverse version for backup
+            Console.WriteLine("Generate reverse version for backup? (y/n):");
+            string reverseChoice = Console.ReadLine();
+
+            if (reverseChoice?.ToLower() == "y")
+            {
+                string reversedPassword = string.Join("-", password.Split('-').Reverse());
+                Console.WriteLine($"\nREVERSE PASSWORD:\n{reversedPassword}\n");
+            }
+
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
         }
-              
+
+        // HELPER: Get word input from user with validation
+        static string GetWordInput(string prompt)
+        {
+            while (true)
+            {
+                Console.Write($"{prompt}: ");
+                string input = Console.ReadLine()?.Trim();
+
+                if (!string.IsNullOrEmpty(input) && input.Length >= 3)
+                {
+                    return input.ToLower();
+                }
+
+                Console.WriteLine("Word must be at least 3 characters!\n");
+            }
+        }
+
+        // HELPER: Get random word from all 6 dictionaries
+        static string GetRandomWordFromAllDictionaries()
+        {
+            var allDictionaries = new[] { Dictionary1, Dictionary2, Dictionary3,
+                                          Dictionary4, Dictionary5, Dictionary6 };
+
+            var dict = allDictionaries[_random.Next(allDictionaries.Length)];
+            return dict[_random.Next(dict.Length)].ToLower();
+        }
     }
 }
+ 
