@@ -172,9 +172,7 @@ namespace SecPassM4ngr
             "Group", "Cluster", "Bundle", "Batch", "Lot", "Heap", "Pile", "Stack", "Queue", "Deck"
         ];
 
-        // Single Random instance (prevents seed duplication issues)
-        static readonly Random _random = new();
-        // FIXED: Removed 'async' since no await is used
+
         static void Main(string[] args)
         {
             // Set UTF-8 encoding for proper Unicode display in console
@@ -190,9 +188,14 @@ namespace SecPassM4ngr
             Console.WriteLine("  [2] Auto");
             Console.Write("\nYour choice (1/2): ");
 
-            string choice = Console.ReadLine();
+            string? choice = Console.ReadLine();
             string[] words = new string[7];
             Console.Clear();
+
+            // Maintain a set of used words to ensure uniqueness
+            HashSet<string> usedWords = [];
+            int userWordsCount = 0;
+
             // MANUAL MODE: 4 user words + 3 random words
             if (choice == "1")
             {
@@ -206,11 +209,7 @@ namespace SecPassM4ngr
                 words[2] = GetWordInput("Favorite game/hobby");
                 words[3] = GetWordInput("KEY WORD (any word)");
 
-                // Fill remaining 3 positions with random words from dictionaries
-                words[4] = GetRandomWordFromAllDictionaries();
-                words[5] = GetRandomWordFromAllDictionaries();
-                words[6] = GetRandomWordFromAllDictionaries();
-
+                userWordsCount = 4;
             }
             
             // AUTO MODE: 6 random words + 1 user key word
@@ -223,27 +222,33 @@ namespace SecPassM4ngr
 
                 words[0] = GetWordInput("KEY WORD");
 
-                // Fill remaining 6 positions with random words from dictionaries
-                for (int i = 1; i < 7; i++)
-                {
-                    words[i] = GetRandomWordFromAllDictionaries();
-                }
+                userWordsCount = 1;
             }
 
-            // ENSURE UNIQUENESS: Check for duplicate words
-            int attempts = 0;
-            while (words.Distinct().Count() != words.Length && attempts < 100)
+            // Adding user`s words to the set
+            for (int i = 0; i < userWordsCount; i++)
             {
-                attempts++;
-                var duplicates = words.GroupBy(x => x).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-                foreach (var dup in duplicates)
+                usedWords.Add(words[i]);
+            }
+
+            // Add random words to fill the rest of the array, ensuring uniqueness
+            for (int i = userWordsCount; i < 7; i++)
+            {
+                string newRandomWord;
+                do
                 {
-                    var indices = words.Select((x, i) => x == dup ? i : -1).Where(i => i != -1).ToList();
-                    for (int i = 1; i < indices.Count; i++)
-                    {
-                        words[indices[i]] = GetRandomWordFromAllDictionaries();
-                    }
+                    newRandomWord = GetRandomWordFromAllDictionaries();
                 }
+                // usedWords.Add() returns false if the word was already in the set,
+                // which means it’s a duplicate.
+
+                // while generates a new random word until it finds one that hasn’t
+                // been used yet, ensuring all words in the final array are unique.
+                while (!usedWords.Add(newRandomWord));
+
+                // If do-while loop ensures uniqueness,
+                // assigning the new random word to the array
+                words[i] = newRandomWord;
             }
 
             // PASSWORD GENERATION: Using self-keyed obfuscation with random positions
@@ -276,7 +281,7 @@ namespace SecPassM4ngr
 
             // OPTIONAL: Generate reverse version for backup
             Console.WriteLine("Generate reverse version for backup? (y/n):");
-            string reverseChoice = Console.ReadLine();
+            string? reverseChoice = Console.ReadLine();
 
             if (reverseChoice?.ToLower() == "y")
             {
@@ -294,7 +299,7 @@ namespace SecPassM4ngr
             while (true)
             {
                 Console.Write($"{prompt}: ");
-                string input = Console.ReadLine()?.Trim();
+                string? input = Console.ReadLine()?.Trim();
 
                 if (!string.IsNullOrEmpty(input) && input.Length >= 3)
                 {
@@ -311,8 +316,8 @@ namespace SecPassM4ngr
             var allDictionaries = new[] { Dictionary1, Dictionary2, Dictionary3,
                                           Dictionary4, Dictionary5, Dictionary6 };
 
-            var dict = allDictionaries[_random.Next(allDictionaries.Length)];
-            return dict[_random.Next(dict.Length)].ToLower();
+            var dict = allDictionaries[Random.Shared.Next(allDictionaries.Length)];
+            return dict[Random.Shared.Next(dict.Length)].ToLower();
         }
     }
 }

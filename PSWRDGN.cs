@@ -48,12 +48,9 @@ namespace SecPassM4ngr
         private const int RICH = 10;          // Max shift value (prevents Unicode issues)
         private const int POOR = -10;         // Min shift value
 
-        // Single Random instance (critical for proper randomness)
-        private static readonly Random _random = new();
 
         // PASSWORD CONFIGURATION CLASS (stores positions for verification)
-        // ============================================================================
-        public class Envelope
+         public class Envelope
         {
             public int CITY { get; set; }              // Position of key word (0-6)
             public int KeyPosition => CITY;            // Alias for compatibility
@@ -94,24 +91,25 @@ namespace SecPassM4ngr
 
             foreach (char c in word.ToLower())
             {
-                // Apply Unicode shift if specified
-                int charCode = c;
-                if (shift != 0)
+                char processedChar = c;
+
+                // Shift character
+                if (shift != 0 && c >= 'a' && c <= 'z')
                 {
-                    charCode = c + shift;
+                    int offset = c - 'a'; // get 0-based index of letter (0 for 'a', 25 for 'z')
 
-                    // Safety: prevent non-printable or invalid Unicode characters
-                    if (charCode < 32) charCode = 32;
-                    if (charCode > 65535) charCode = 65535;
+                    // Formula for circular shift with wrap-around: 
+                    // + 26 need, to handle negative shifts correctly
+                    int shiftedOffset = (offset + (shift % 26) + 26) % 26;
+
+                    processedChar = (char)('a' + shiftedOffset);
                 }
-
-                char processedChar = (char)charCode;
 
                 // Apply MiniMap visual obfuscation (75% chance)
                 if (MiniMap.TryGetValue(processedChar, out string[] options) &&
-                    _random.Next(100) < 75)
+                    Random.Shared.Next(100) < 75)
                 {
-                    sb.Append(options[_random.Next(options.Length)]);
+                    sb.Append(options[Random.Shared.Next(options.Length)]);
                 }
                 else
                 {
@@ -130,7 +128,7 @@ namespace SecPassM4ngr
                 throw new ArgumentException($"Password requires exactly {KINGDOM} words!");
 
             // Randomly select positions for key and shifted words
-            var positions = Enumerable.Range(0, KINGDOM).OrderBy(x => _random.Next()).Take(3).ToArray();
+            var positions = Enumerable.Range(0, KINGDOM).OrderBy(x => Random.Shared.Next()).Take(3).ToArray();
             int CITY = positions[0];
             int[] shiftPositions = [positions[1], positions[2]];
 
@@ -273,8 +271,8 @@ namespace SecPassM4ngr
             // Pick random word from random dictionary for each position
             for (int i = 0; i < KINGDOM; i++)
             {
-                var dict = allDictionaries[_random.Next(allDictionaries.Length)];
-                selectedWords[i] = dict[_random.Next(dict.Length)].ToLower();
+                var dict = allDictionaries[Random.Shared.Next(allDictionaries.Length)];
+                selectedWords[i] = dict[Random.Shared.Next(dict.Length)].ToLower();
             }
 
             // Ensure all words are unique
@@ -284,8 +282,8 @@ namespace SecPassM4ngr
                 attempts++;
                 for (int i = 0; i < KINGDOM; i++)
                 {
-                    var dict = allDictionaries[_random.Next(allDictionaries.Length)];
-                    selectedWords[i] = dict[_random.Next(dict.Length)].ToLower();
+                    var dict = allDictionaries[Random.Shared.Next(allDictionaries.Length)];
+                    selectedWords[i] = dict[Random.Shared.Next(dict.Length)].ToLower();
                 }
             }
 
